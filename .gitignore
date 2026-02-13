@@ -1,0 +1,5 @@
+config.env
+log/
+node_modules/
+.vscode/
+.prettierrc
