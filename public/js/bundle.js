@@ -3193,12 +3193,13 @@
         const header = document.querySelector(".header");
         const footer = document.querySelector(".footer");
         const footerT = document.querySelector(".footer-text");
-        const form = document.querySelector(".form");
+        const forms = document.querySelectorAll(".form");
         const formInput = document.querySelector(".form__input");
         const btn = document.querySelectorAll(".btn");
         const links = document.querySelectorAll(".nav__el");
         const dashboard = document.querySelector(".dashboard__container");
-        elements.push(header, footer, footerT, form, dashboard);
+        const table = document.querySelector(".milestones__table");
+        elements.push(header, footer, footerT, dashboard, table);
         elements.forEach((el) => {
           if (el) el.classList.toggle("dark-mode-el");
         });
@@ -3209,8 +3210,30 @@
         links.forEach((link) => {
           link.classList.toggle("dark-mode-btn");
         });
-        if (document.body.classList[0].startsWith("dark"))
+        if (forms)
+          forms.forEach((form) => {
+            form.classList.toggle("dark-mode-el");
+          });
+        const boxes = document.querySelectorAll(".shipment-box");
+        if (boxes)
+          boxes.forEach((box) => {
+            box.classList.toggle("dark-mode-container");
+          });
+        const labels = document.querySelectorAll(".shipment-box_label");
+        if (labels)
+          labels.forEach((label) => {
+            label.classList.toggle("dark-mode-span");
+          });
+        const inputs = document.querySelectorAll(".form__input");
+        if (inputs)
+          inputs.forEach((input) => {
+            input.classList.toggle("dark-mode-container");
+          });
+        if (document.body.classList.contains("dark-mode-bg")) {
           localStorage.setItem("theme", "dark-mode");
+        } else {
+          localStorage.setItem("theme", "");
+        }
       };
     }
   });
@@ -3241,26 +3264,53 @@
     }
   });
 
+  // public/js/submitData.js
+  var submitMaster;
+  var init_submitData = __esm({
+    "public/js/submitData.js"() {
+      "use strict";
+      init_axios2();
+      init_alert();
+      submitMaster = async (dataObj) => {
+        const localObj = { ...dataObj };
+        try {
+          const res = await axios_default({
+            method: "POST",
+            url: "http://127.0.0.1:8000/api/v1/data",
+            data: localObj
+          });
+          if (res.data.status === "success") {
+            showAlert("success", "Data submitted successfully");
+            let data = JSON.stringify(res.data.data.data, null, 4);
+            document.querySelector(".data-preview").textContent = data;
+          }
+        } catch (err) {
+          showAlert("error", err);
+        }
+      };
+    }
+  });
+
   // public/js/index.js
   var require_index = __commonJS({
     "public/js/index.js"() {
       init_login();
       init_changeStyle();
       init_opsFunctions();
+      init_submitData();
       var currentTheme = localStorage.getItem("theme");
       if (currentTheme) {
         changeStyle();
       }
       var logOutBtn = document.querySelector(".nav__el--logout");
-      var form = document.querySelector(".form");
+      var loginForm = document.querySelector(".login-form");
+      var submitDataForm = document.querySelector(".data-form__master");
       var themeBtn = document.querySelector(".theme");
       var viewDbxBtn = document.querySelector(".view-dbx");
       var checkboxes = document.querySelectorAll("ul input");
-      var milestones = document.querySelectorAll('input[type="checkbox"]');
       var submitBtn = document.querySelector(".submit");
-      var milestoneBtn = document.querySelector(".btn.milestone");
-      if (form)
-        form.addEventListener("submit", (e) => {
+      if (loginForm)
+        loginForm.addEventListener("submit", (e) => {
           e.preventDefault();
           const email = document.getElementById("email").value;
           const password = document.getElementById("password").value;
@@ -3284,14 +3334,16 @@
           viewShipmentLogs(id);
         });
       }
-      if (milestoneBtn) {
-        milestoneBtn.addEventListener("click", function() {
-          console.log("Howdy!");
-          for (let i = 0; i < milestones.length; i++) {
-            if (milestones[i].checked) console.log(milestones[i].className);
-          }
+      if (submitDataForm)
+        submitDataForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const object = {};
+          const fileId = document.getElementById("shipment_file_id").value;
+          const userId = document.getElementById("users").value;
+          object.shipment_file_id = fileId;
+          object.users = userId;
+          submitMaster(object);
         });
-      }
     }
   });
   require_index();
