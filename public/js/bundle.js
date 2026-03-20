@@ -2141,7 +2141,7 @@
         }
       };
       trackStream = (stream, chunkSize, onProgress, onFinish) => {
-        const iterator2 = readBytes(stream, chunkSize);
+        const iterator3 = readBytes(stream, chunkSize);
         let bytes = 0;
         let done;
         let _onFinish = (e) => {
@@ -2154,7 +2154,7 @@
           {
             async pull(controller) {
               try {
-                const { done: done2, value } = await iterator2.next();
+                const { done: done2, value } = await iterator3.next();
                 if (done2) {
                   _onFinish();
                   controller.close();
@@ -2173,7 +2173,7 @@
             },
             cancel(reason) {
               _onFinish(reason);
-              return iterator2.return();
+              return iterator3.return();
             }
           },
           {
@@ -3265,12 +3265,30 @@
   });
 
   // public/js/submitData.js
-  var submitMaster;
+  var submit, submitMaster;
   var init_submitData = __esm({
     "public/js/submitData.js"() {
       "use strict";
       init_axios2();
       init_alert();
+      submit = async (dataObj, url) => {
+        const localObj = { ...dataObj };
+        try {
+          const res = await axios_default({
+            method: "POST",
+            url: `http://127.0.0.1:8000/api/v1/data/${url}`,
+            data: localObj
+          });
+          if (res.data.status === "success") {
+            showAlert("success", "Data submitted successfully");
+            let data = JSON.stringify(res.data.data.data, null, 4);
+            document.querySelector(".data-preview").textContent = data;
+          }
+        } catch (err) {
+          console.log(err.response.data);
+          showAlert("error", err.response.data);
+        }
+      };
       submitMaster = async (dataObj) => {
         const localObj = { ...dataObj };
         try {
@@ -3291,6 +3309,99 @@
     }
   });
 
+  // public/js/data.js
+  var detailsArray, conveyanceArray, customsArray, financialsArray, shipperArray, iterator2;
+  var init_data2 = __esm({
+    "public/js/data.js"() {
+      detailsArray = [
+        "incoterms",
+        "mode",
+        "routing",
+        "goodsDescriptions",
+        "packagingType",
+        "containerSpecs",
+        "containerQty",
+        "numItems",
+        "grossWeightKg",
+        "netWeightKg",
+        "cbm",
+        "handlingRequirements",
+        "dangerousGoods",
+        "codeDrg",
+        "MasterId"
+      ];
+      conveyanceArray = [
+        "loadPort",
+        "portTransShip",
+        "portDischarge",
+        "inlandDestination",
+        "finalDelivery",
+        "airlineName",
+        "billMasterAirway",
+        "billHouseAirway",
+        "flightNum1",
+        "flightDate1",
+        "flightNum2",
+        "flightDate2",
+        "etd",
+        "eta",
+        "shippingLineName",
+        "vesselName",
+        "voyageNum",
+        "oceanBoLnum",
+        "houseBoLnum",
+        "containerNum",
+        "sealNum",
+        "shippedOnboardDate",
+        "etaFinalPort",
+        "truckRegNo",
+        "truckType",
+        "MasterId"
+      ];
+      customsArray = [
+        "agent",
+        "agentCode",
+        "bOeNum",
+        "bOeReleaseDate",
+        "bOeAssessDate",
+        "releaseDepot",
+        "lrnNum",
+        "mrnNum",
+        "MasterId"
+      ];
+      financialsArray = [
+        "shipperInvoiceNum",
+        "invoiceDate",
+        "invoiceAmount",
+        "currency",
+        "tradeRef",
+        "apnNum",
+        "bank",
+        "apnDate",
+        "MasterId"
+      ];
+      shipperArray = [
+        "MasterId",
+        "companyName",
+        "contactName",
+        "phoneLandline",
+        " phoneMobile",
+        "emailPrimary",
+        "emailSecondary",
+        "addressLine1",
+        "addressLine2",
+        "addressLine3",
+        "country"
+      ];
+      iterator2 = (obj, str) => {
+        for (let x of Object.keys(obj)) {
+          if (x === str) return x;
+        }
+        return void 0;
+      };
+    }
+  });
+
   // public/js/index.js
   var require_index = __commonJS({
     "public/js/index.js"() {
@@ -3298,6 +3409,7 @@
       init_changeStyle();
       init_opsFunctions();
       init_submitData();
+      init_data2();
       var currentTheme = localStorage.getItem("theme");
       if (currentTheme) {
         changeStyle();
@@ -3305,6 +3417,11 @@
       var logOutBtn = document.querySelector(".nav__el--logout");
       var loginForm = document.querySelector(".login-form");
       var submitDataForm = document.querySelector(".data-form__master");
+      var submitShipperForm = document.querySelector(".data-form__shipper");
+      var submitFinancialsForm = document.querySelector(".data-form__financials");
+      var submitCustomsForm = document.querySelector(".data-form__customs");
+      var submitDetailsForm = document.querySelector(".data-form__details");
+      var submitConveyanceForm = document.querySelector(".data-form__conveyance");
       var themeBtn = document.querySelector(".theme");
       var viewDbxBtn = document.querySelector(".view-dbx");
       var checkboxes = document.querySelectorAll("ul input");
@@ -3342,7 +3459,83 @@
           const userId = document.getElementById("users").value;
           object.shipment_file_id = fileId;
           object.users = userId;
+          console.log(object);
           submitMaster(object);
+        });
+      if (submitShipperForm)
+        submitShipperForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const object = {};
+          for (const key of shipperArray) {
+            object[key] = null;
+          }
+          shipperArray.forEach((el) => {
+            const node = document.getElementById(el);
+            if (!node) return;
+            let key = iterator2(object, el);
+            object[key] = node.value;
+          });
+          submit(object, "shippers");
+        });
+      if (submitFinancialsForm)
+        submitFinancialsForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const object = {};
+          for (const key of financialsArray) {
+            object[key] = null;
+          }
+          financialsArray.forEach((el) => {
+            const node = document.getElementById(el);
+            if (!node) return;
+            let key = iterator2(object, el);
+            object[key] = node.value;
+          });
+          submit(object, "financials");
+        });
+      if (submitCustomsForm)
+        submitCustomsForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const object = {};
+          for (const key of customsArray) {
+            object[key] = null;
+          }
+          customsArray.forEach((el) => {
+            const node = document.getElementById(el);
+            if (!node) return;
+            let key = iterator2(object, el);
+            object[key] = node.value;
+          });
+          submit(object, "customs");
+        });
+      if (submitDetailsForm)
+        submitDetailsForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          let object = {};
+          for (const key of detailsArray) {
+            object[key] = null;
+          }
+          detailsArray.forEach((el) => {
+            const node = document.getElementById(el);
+            if (!node) return;
+            let key = iterator2(object, el);
+            object[key] = node.value;
+          });
+          submit(object, "shipment-details");
+        });
+      if (submitConveyanceForm)
+        submitConveyanceForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          let object = {};
+          for (const key of conveyanceArray) {
+            object[key] = null;
+          }
+          conveyanceArray.forEach((el) => {
+            const node = document.getElementById(el);
+            if (!node) return;
+            let key = iterator2(object, el);
+            object[key] = node.value;
+          });
+          submit(object, "conveyance");
         });
     }
   });
