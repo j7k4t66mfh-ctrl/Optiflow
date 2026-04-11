@@ -3199,7 +3199,9 @@
         const links = document.querySelectorAll(".nav__el");
         const dashboard = document.querySelector(".dashboard__container");
         const table = document.querySelector(".milestones__table");
-        elements.push(header, footer, footerT, dashboard, table);
+        const update2 = document.querySelector(".milestones__update");
+        const checkbox = document.querySelector(".checkbox-table");
+        elements.push(header, footer, footerT, dashboard, table, update2);
         elements.forEach((el) => {
           if (el) el.classList.toggle("dark-mode-el");
         });
@@ -3215,10 +3217,11 @@
             form.classList.toggle("dark-mode-el");
           });
         const boxes = document.querySelectorAll(".shipment-box");
-        if (boxes)
+        if (boxes) {
           boxes.forEach((box) => {
             box.classList.toggle("dark-mode-container");
           });
+        }
         const labels = document.querySelectorAll(".shipment-box_label");
         if (labels)
           labels.forEach((label) => {
@@ -3229,6 +3232,7 @@
           inputs.forEach((input) => {
             input.classList.toggle("dark-mode-container");
           });
+        if (checkbox) checkbox.classList.toggle("dark-mode-container");
         if (document.body.classList.contains("dark-mode-bg")) {
           localStorage.setItem("theme", "dark-mode");
         } else {
@@ -3239,13 +3243,13 @@
   });
 
   // public/js/opsFunctions.js
-  var viewShipmentLogs;
+  var viewShipmentLogs, updateTimeline, getTable;
   var init_opsFunctions = __esm({
     "public/js/opsFunctions.js"() {
       init_axios2();
       init_alert();
       viewShipmentLogs = async (id) => {
-        userid = id;
+        const userid = id;
         try {
           const res = await axios_default({
             method: "GET",
@@ -3258,25 +3262,69 @@
             document.querySelector(".shipment-logs").textContent = data;
           }
         } catch (err) {
+          showAlert("error", err.response.data.msg);
+        }
+      };
+      updateTimeline = async (docId, data) => {
+        const id = docId;
+        const newData = { ...data };
+        console.log(id, newData);
+        try {
+          const res = await axios_default({
+            method: "PATCH",
+            url: `http://127.0.0.1:8000/api/v1/data/timeline/${id}`,
+            data: newData
+          });
+          if (res.data.status === "success") {
+            showAlert("success", "Timeline updated successfully!");
+            window.setTimeout(() => {
+              location.reload();
+            }, 4600);
+          }
+        } catch (err) {
+          showAlert("error", err.response.data.msg);
+        }
+      };
+      getTable = async (name, id) => {
+        let [x, ...arr] = name;
+        x = x.toLowerCase();
+        arr.unshift(x);
+        const selection = arr.join("");
+        try {
+          const res = await axios_default({
+            method: "GET",
+            url: `http://127.0.0.1:8000/api/v1/data/${selection}/${id}`
+          });
+          if (res.data.status === "success") {
+            console.log(res.data);
+            const markupShipment = `<div class="shipment-box-detail"> <span class="shipment-box_label"> ${JSON.stringify(res.data.data.document, null, 4).replaceAll('"', "")}</span></div>`;
+            Object.keys(res.data.data.document).forEach((key) => {
+              document.querySelector(".field-select").insertAdjacentHTML("afterbegin", `<option>${key}</option>`);
+            });
+            document.querySelector(".shipment-box").insertAdjacentHTML("afterbegin", markupShipment);
+          }
+        } catch (err) {
           console.log(err);
+          showAlert("error", err.response);
         }
       };
     }
   });
 
   // public/js/submitData.js
-  var submit, submitMaster;
+  var submit, update;
   var init_submitData = __esm({
     "public/js/submitData.js"() {
       "use strict";
       init_axios2();
       init_alert();
-      submit = async (dataObj, url) => {
+      submit = async (dataObj, type) => {
+        const url = type === "master" ? "http://127.0.0.1:8000/api/v1/data" : `http://127.0.0.1:8000/api/v1/data/${type}`;
         const localObj = { ...dataObj };
         try {
           const res = await axios_default({
             method: "POST",
-            url: `http://127.0.0.1:8000/api/v1/data/${url}`,
+            url,
             data: localObj
           });
           if (res.data.status === "success") {
@@ -3285,32 +3333,30 @@
             document.querySelector(".data-preview").textContent = data;
           }
         } catch (err) {
-          console.log(err.response.data);
-          showAlert("error", err.response.data);
+          showAlert("error", err.response.data.message);
         }
       };
-      submitMaster = async (dataObj) => {
+      update = async (dataObj, table, id) => {
         const localObj = { ...dataObj };
+        const url = `http://127.0.0.1:8000/api/v1/data/${table}/${id}`;
         try {
           const res = await axios_default({
-            method: "POST",
-            url: "http://127.0.0.1:8000/api/v1/data",
+            method: "PATCH",
+            url,
             data: localObj
           });
           if (res.data.status === "success") {
             showAlert("success", "Data submitted successfully");
-            let data = JSON.stringify(res.data.data.data, null, 4);
-            document.querySelector(".data-preview").textContent = data;
           }
         } catch (err) {
-          showAlert("error", err);
+          showAlert("error", err.response.data.message);
         }
       };
     }
   });
 
   // public/js/data.js
-  var detailsArray, conveyanceArray, customsArray, financialsArray, shipperArray, iterator2;
+  var detailsArray, conveyanceArray, customsArray, financialsArray, shipperArray, customerKeyArray, customerIdArray, consigneesKeyArray, consigneesIdArray, iterator2, addRemoveClasslist, initialize, timelineKeysArr, metaArray;
   var init_data2 = __esm({
     "public/js/data.js"() {
       detailsArray = [
@@ -3328,7 +3374,7 @@
         "handlingRequirements",
         "dangerousGoods",
         "codeDrg",
-        "MasterId"
+        "detailsMasterId"
       ];
       conveyanceArray = [
         "loadPort",
@@ -3356,7 +3402,7 @@
         "etaFinalPort",
         "truckRegNo",
         "truckType",
-        "MasterId"
+        "conveyanceMasterId"
       ];
       customsArray = [
         "agent",
@@ -3367,7 +3413,7 @@
         "releaseDepot",
         "lrnNum",
         "mrnNum",
-        "MasterId"
+        "customsMasterId"
       ];
       financialsArray = [
         "shipperInvoiceNum",
@@ -3378,14 +3424,14 @@
         "apnNum",
         "bank",
         "apnDate",
-        "MasterId"
+        "financialsMasterId"
       ];
       shipperArray = [
-        "MasterId",
+        "shippersMasterId",
         "companyName",
         "contactName",
         "phoneLandline",
-        " phoneMobile",
+        "phoneMobile",
         "emailPrimary",
         "emailSecondary",
         "addressLine1",
@@ -3393,12 +3439,244 @@
         "addressLine3",
         "country"
       ];
+      customerKeyArray = [
+        "userId",
+        "companyName",
+        "phoneLandline",
+        "phoneMobile",
+        "emailPri",
+        "emailSec",
+        "addressLine1",
+        "addressLine2",
+        "addressLine3",
+        "country"
+      ];
+      customerIdArray = [
+        "userId",
+        "companyName_1",
+        "phoneLandline_1",
+        "phoneMobile_1",
+        "emailPri",
+        "emailSec",
+        "addressLine1_1",
+        "addressLine2_1",
+        "addressLine3_1",
+        "country_1"
+      ];
+      consigneesKeyArray = [
+        "consigneesMasterId",
+        "companyName",
+        "phoneLandline",
+        "phoneMobile",
+        "emailPri",
+        "emailSec",
+        "addressLine1",
+        "addressLine2",
+        "addressLine3",
+        "country"
+      ];
+      consigneesIdArray = [
+        "consigneesMasterId",
+        "companyName_2",
+        "phoneLandline_2",
+        "phoneMobile_2",
+        "emailPri_1",
+        "emailSec_1",
+        "addressLine1_2",
+        "addressLine2_2",
+        "addressLine3_2",
+        "country_2"
+      ];
       iterator2 = (obj, str) => {
         for (let x of Object.keys(obj)) {
           if (x === str) return x;
         }
         return void 0;
       };
+      addRemoveClasslist = (el) => {
+        const [a, b, c, d] = el;
+        a.classList.add("hidden");
+        b.classList.add("hidden");
+        c.classList.remove("hidden");
+        d.classList.remove("hidden");
+      };
+      initialize = (el) => {
+        el.classList.add("hidden");
+      };
+      timelineKeysArr = [
+        "cargo_collected",
+        "received",
+        "cargo_packed",
+        "depot_lrd",
+        "cargo_loaded",
+        "cargo_departed",
+        "obl_awb",
+        "anf_pre",
+        "customer",
+        "payment",
+        "line",
+        "clearing",
+        "delivery",
+        "signed",
+        "sars",
+        "cargo_arrived",
+        "cargo_released",
+        "cargo_unpacked",
+        "cargo_delivered",
+        "doc"
+      ];
+      metaArray = [
+        {
+          name: "Shipment-details",
+          array: [
+            "incoterms",
+            "mode",
+            "routing",
+            "goodsDescriptions",
+            "packagingType",
+            "containerSpecs",
+            "containerQty",
+            "numItems",
+            "grossWeightKg",
+            "netWeightKg",
+            "cbm",
+            "handlingRequirements",
+            "dangerousGoods",
+            "codeDrg",
+            "detailsMasterId"
+          ]
+        },
+        {
+          name: "Conveyance",
+          array: [
+            "loadPort",
+            "portTransShip",
+            "portDischarge",
+            "inlandDestination",
+            "finalDelivery",
+            "airlineName",
+            "billMasterAirway",
+            "billHouseAirway",
+            "flightNum1",
+            "flightDate1",
+            "flightNum2",
+            "flightDate2",
+            "etd",
+            "eta",
+            "shippingLineName",
+            "vesselName",
+            "voyageNum",
+            "oceanBoLnum",
+            "houseBoLnum",
+            "containerNum",
+            "sealNum",
+            "shippedOnboardDate",
+            "etaFinalPort",
+            "truckRegNo",
+            "truckType",
+            "conveyanceMasterId"
+          ]
+        },
+        {
+          name: "Customs",
+          array: [
+            "agent",
+            "agentCode",
+            "bOeNum",
+            "bOeReleaseDate",
+            "bOeAssessDate",
+            "releaseDepot",
+            "lrnNum",
+            "mrnNum",
+            "customsMasterId"
+          ]
+        },
+        {
+          name: "Financials",
+          array: [
+            "shipperInvoiceNum",
+            "invoiceDate",
+            "invoiceAmount",
+            "currency",
+            "tradeRef",
+            "apnNum",
+            "bank",
+            "apnDate",
+            "financialsMasterId"
+          ]
+        },
+        {
+          name: "Shippers",
+          array: [
+            "shippersMasterId",
+            "companyName",
+            "contactName",
+            "phoneLandline",
+            "phoneMobile",
+            "emailPrimary",
+            "emailSecondary",
+            "addressLine1",
+            "addressLine2",
+            "addressLine3",
+            "country"
+          ]
+        },
+        {
+          name: "Timelines",
+          array: [
+            "cargo_collected",
+            "received",
+            "cargo_packed",
+            "depot_lrd",
+            "cargo_loaded",
+            "cargo_departed",
+            "obl_awb",
+            "anf_pre",
+            "customer",
+            "payment",
+            "line",
+            "clearing",
+            "delivery",
+            "signed",
+            "sars",
+            "cargo_arrived",
+            "cargo_released",
+            "cargo_unpacked",
+            "cargo_delivered",
+            "doc"
+          ]
+        },
+        {
+          name: "Customers",
+          array: [
+            "userId",
+            "companyName",
+            "phoneLandline",
+            "phoneMobile",
+            "emailPri",
+            "emailSec",
+            "addressLine1",
+            "addressLine2",
+            "addressLine3",
+            "country"
+          ]
+        },
+        {
+          name: "Consignees",
+          array: [
+            "consigneesMasterId",
+            "companyName",
+            "phoneLandline",
+            "phoneMobile",
+            "emailPri",
+            "emailSec",
+            "addressLine1",
+            "addressLine2",
+            "addressLine3",
+            "country"
+          ]
+        }
+      ];
     }
   });
 
@@ -3422,10 +3700,46 @@
       var submitCustomsForm = document.querySelector(".data-form__customs");
       var submitDetailsForm = document.querySelector(".data-form__details");
       var submitConveyanceForm = document.querySelector(".data-form__conveyance");
+      var timelineForm = document.querySelector(".data-form__timeline");
+      var customersForm = document.querySelector(".data-form__customers");
+      var consigneesForm = document.querySelector(".data-form__consignees");
       var themeBtn = document.querySelector(".theme");
       var viewDbxBtn = document.querySelector(".view-dbx");
       var checkboxes = document.querySelectorAll("ul input");
       var submitBtn = document.querySelector(".submit");
+      var nextBtn1 = document.querySelector(".next1");
+      var nextBtn2 = document.querySelector(".next2");
+      var nextBtn3 = document.querySelector(".next3");
+      var nextBtn4 = document.querySelector(".next4");
+      var nextBtn5 = document.querySelector(".next5");
+      var nextBtn6 = document.querySelector(".next6");
+      var nextBtn7 = document.querySelector(".next7");
+      var nextBtn8 = document.querySelector(".next8");
+      var dbUpdateSelect1 = document.querySelector(".db-select");
+      var dbUpdateBtn1 = document.querySelector(".update-select");
+      var dbUpdateId = document.querySelector(".document-id");
+      var fieldAddBtn = document.querySelector(".update-add1");
+      var fieldSelector = document.querySelector(".field-select");
+      var updateForm = document.querySelector(".update-form");
+      var formElements = [];
+      formElements.push(
+        submitShipperForm,
+        submitFinancialsForm,
+        submitCustomsForm,
+        submitDetailsForm,
+        submitConveyanceForm,
+        timelineForm,
+        customersForm,
+        consigneesForm,
+        nextBtn2,
+        nextBtn3,
+        nextBtn4,
+        nextBtn5,
+        nextBtn6,
+        nextBtn7,
+        nextBtn8
+      );
+      for (const el of formElements) if (el) initialize(el);
       if (loginForm)
         loginForm.addEventListener("submit", (e) => {
           e.preventDefault();
@@ -3459,8 +3773,7 @@
           const userId = document.getElementById("users").value;
           object.shipment_file_id = fileId;
           object.users = userId;
-          console.log(object);
-          submitMaster(object);
+          submit(object, "master");
         });
       if (submitShipperForm)
         submitShipperForm.addEventListener("submit", (e) => {
@@ -3490,6 +3803,7 @@
             let key = iterator2(object, el);
             object[key] = node.value;
           });
+          console.log(object);
           submit(object, "financials");
         });
       if (submitCustomsForm)
@@ -3536,6 +3850,186 @@
             object[key] = node.value;
           });
           submit(object, "conveyance");
+        });
+      if (timelineForm)
+        timelineForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          let object = {};
+          object.timelineMasterId = document.getElementById("timelineMasterId").value;
+          submit(object, "timeline");
+        });
+      if (customersForm)
+        customersForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          let object = {};
+          for (const key of customerKeyArray) {
+            object[key] = null;
+          }
+          customerIdArray.forEach((el) => {
+            const node = document.getElementById(el);
+            if (!node) return;
+            el = el.split("_");
+            let key = iterator2(object, el[0]);
+            object[key] = node.value;
+          });
+          submit(object, "customers");
+        });
+      if (consigneesForm)
+        consigneesForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          let object = {};
+          for (const key of consigneesKeyArray) {
+            object[key] = null;
+          }
+          consigneesIdArray.forEach((el) => {
+            const node = document.getElementById(el);
+            if (!node) return;
+            el = el.split("_");
+            let key = iterator2(object, el[0]);
+            object[key] = node.value;
+          });
+          submit(object, "consignees");
+        });
+      if (nextBtn1)
+        nextBtn1.addEventListener("click", () => {
+          addRemoveClasslist([nextBtn1, submitDataForm, submitShipperForm, nextBtn2]);
+        });
+      if (nextBtn2)
+        nextBtn2.addEventListener("click", () => {
+          addRemoveClasslist([
+            nextBtn2,
+            submitShipperForm,
+            submitDetailsForm,
+            nextBtn3
+          ]);
+        });
+      if (nextBtn3)
+        nextBtn3.addEventListener("click", () => {
+          addRemoveClasslist([
+            nextBtn3,
+            submitDetailsForm,
+            submitFinancialsForm,
+            nextBtn4
+          ]);
+        });
+      if (nextBtn4)
+        nextBtn4.addEventListener("click", () => {
+          addRemoveClasslist([
+            nextBtn4,
+            submitFinancialsForm,
+            submitCustomsForm,
+            nextBtn5
+          ]);
+        });
+      if (nextBtn5)
+        nextBtn5.addEventListener("click", () => {
+          addRemoveClasslist([
+            nextBtn5,
+            submitCustomsForm,
+            submitConveyanceForm,
+            nextBtn6
+          ]);
+        });
+      if (nextBtn6)
+        nextBtn6.addEventListener("click", () => {
+          addRemoveClasslist([
+            nextBtn6,
+            submitConveyanceForm,
+            timelineForm,
+            nextBtn7
+          ]);
+        });
+      if (nextBtn7)
+        nextBtn7.addEventListener("click", () => {
+          timelineForm.classList.add("hidden");
+          nextBtn7.classList.add("hidden");
+          customersForm.classList.remove("hidden");
+          nextBtn8.classList.remove("hidden");
+        });
+      if (nextBtn8)
+        nextBtn8.addEventListener("click", () => {
+          customersForm.classList.add("hidden");
+          nextBtn8.classList.add("hidden");
+          consigneesForm.classList.remove("hidden");
+        });
+      var milestoneBool = document.querySelectorAll("td");
+      if (milestoneBool)
+        milestoneBool.forEach((el) => {
+          if (el.textContent === "true") el.classList.add("truthy");
+        });
+      if (document.querySelector(".timeline-select"))
+        document.querySelector(".timeline-id__submit").addEventListener("click", () => {
+          const timelineId = document.querySelector(".timeline-id").value;
+          let object = {};
+          for (const x of timelineKeysArr) {
+            object[x] = null;
+          }
+          let input = document.querySelector(".timeline-select").value;
+          input = input.replace("/", " ");
+          let arr = input.split(" ");
+          for (let i = 0; i < arr.length; i++) {
+            arr[i] = arr[i].toLowerCase();
+          }
+          if (arr.length >= 3) arr.pop();
+          let arrCopy = [...arr];
+          arr = arr.join("_");
+          let key;
+          timelineKeysArr.forEach((el) => {
+            if (arr.includes(el)) {
+              key = el;
+            }
+          });
+          object[key] = "true";
+          const dateInput = document.querySelector(".timeline-date").value;
+          for (let i = 0; i <= 3; i++) {
+            while (arrCopy.length >= 3) {
+              arrCopy.pop();
+            }
+          }
+          arrCopy.push("date");
+          arrCopy = arrCopy.join("_");
+          object[arrCopy] = dateInput;
+          updateTimeline(timelineId, object);
+        });
+      if (dbUpdateSelect1)
+        dbUpdateBtn1.addEventListener("click", () => {
+          const selection = dbUpdateSelect1.value;
+          const id2 = dbUpdateId.value;
+          getTable(selection, id2);
+        });
+      if (fieldSelector)
+        fieldAddBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          const selection = fieldSelector.value;
+          console.log(selection);
+          const markup = `<div class="form__group">
+  <label class="form__label" for="${selection}">
+    ${selection.toUpperCase()}
+  </label>
+  <input class="form__input" id="${selection}">
+</div>`;
+          document.querySelector(".update-form").insertAdjacentHTML("afterbegin", markup);
+        });
+      if (updateForm)
+        updateForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const tableSelection = dbUpdateSelect1.value;
+          const object = {};
+          metaArray.forEach((obj) => {
+            if (tableSelection === obj.name) {
+              console.log(obj.name, obj.array);
+              obj.array.forEach((el) => {
+                const node = document.getElementById(el);
+                if (!node) return;
+                let key = el;
+                object[key] = node.value;
+              });
+            }
+          });
+          const route = tableSelection.toLowerCase();
+          const id2 = dbUpdateId.value;
+          console.log(object);
+          update(object, route, id2);
         });
     }
   });
