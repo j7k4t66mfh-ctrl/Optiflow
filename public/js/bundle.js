@@ -1181,14 +1181,37 @@
   });
 
   // node_modules/axios/lib/core/AxiosHeaders.js
+  function assertValidHeaderValue(value, header) {
+    if (value === false || value == null) {
+      return;
+    }
+    if (utils_default.isArray(value)) {
+      value.forEach((v) => assertValidHeaderValue(v, header));
+      return;
+    }
+    if (!isValidHeaderValue(String(value))) {
+      throw new Error(`Invalid character in header content ["${header}"]`);
+    }
+  }
   function normalizeHeader(header) {
     return header && String(header).trim().toLowerCase();
+  }
+  function stripTrailingCRLF(str) {
+    let end = str.length;
+    while (end > 0) {
+      const charCode = str.charCodeAt(end - 1);
+      if (charCode !== 10 && charCode !== 13) {
+        break;
+      }
+      end -= 1;
+    }
+    return end === str.length ? str : str.slice(0, end);
   }
   function normalizeValue(value) {
     if (value === false || value == null) {
       return value;
     }
-    return utils_default.isArray(value) ? value.map(normalizeValue) : String(value);
+    return utils_default.isArray(value) ? value.map(normalizeValue) : stripTrailingCRLF(String(value));
   }
   function parseTokens(str) {
     const tokens = /* @__PURE__ */ Object.create(null);
@@ -1230,13 +1253,14 @@
       });
     });
   }
-  var $internals, isValidHeaderName, AxiosHeaders, AxiosHeaders_default;
+  var $internals, isValidHeaderValue, isValidHeaderName, AxiosHeaders, AxiosHeaders_default;
   var init_AxiosHeaders = __esm({
     "node_modules/axios/lib/core/AxiosHeaders.js"() {
       "use strict";
       init_utils();
       init_parseHeaders();
       $internals = /* @__PURE__ */ Symbol("internals");
+      isValidHeaderValue = (value) => !/[\r\n]/.test(value);
       isValidHeaderName = (str) => /^[-_a-zA-Z0-9^`|~,!#$%&'*+.]+$/.test(str.trim());
       AxiosHeaders = class {
         constructor(headers) {
@@ -1251,6 +1275,7 @@
             }
             const key = utils_default.findKey(self2, lHeader);
             if (!key || self2[key] === void 0 || _rewrite === true || _rewrite === void 0 && self2[key] !== false) {
+              assertValidHeaderValue(_value, _header);
               self2[key || _header] = normalizeValue(_value);
             }
           }
@@ -2230,14 +2255,16 @@
         const encodeText = isFetchSupported && (typeof TextEncoder === "function" ? /* @__PURE__ */ ((encoder) => (str) => encoder.encode(str))(new TextEncoder()) : async (str) => new Uint8Array(await new Request(str).arrayBuffer()));
         const supportsRequestStream = isRequestSupported && isReadableStreamSupported && test(() => {
           let duplexAccessed = false;
+          const body = new ReadableStream2();
           const hasContentType = new Request(platform_default.origin, {
-            body: new ReadableStream2(),
+            body,
             method: "POST",
             get duplex() {
               duplexAccessed = true;
               return "half";
             }
           }).headers.has("Content-Type");
+          body.cancel();
           return duplexAccessed && !hasContentType;
         });
         const supportsResponseStream = isResponseSupported && isReadableStreamSupported && test(() => utils_default.isReadableStream(new Response("").body));
@@ -2551,7 +2578,7 @@
   var VERSION;
   var init_data = __esm({
     "node_modules/axios/lib/env/data.js"() {
-      VERSION = "1.13.6";
+      VERSION = "1.15.0";
     }
   });
 
@@ -2668,12 +2695,23 @@
             if (err instanceof Error) {
               let dummy = {};
               Error.captureStackTrace ? Error.captureStackTrace(dummy) : dummy = new Error();
-              const stack = dummy.stack ? dummy.stack.replace(/^.+\n/, "") : "";
+              const stack = (() => {
+                if (!dummy.stack) {
+                  return "";
+                }
+                const firstNewlineIndex = dummy.stack.indexOf("\n");
+                return firstNewlineIndex === -1 ? "" : dummy.stack.slice(firstNewlineIndex + 1);
+              })();
               try {
                 if (!err.stack) {
                   err.stack = stack;
-                } else if (stack && !String(err.stack).endsWith(stack.replace(/^.+\n.+\n/, ""))) {
-                  err.stack += "\n" + stack;
+                } else if (stack) {
+                  const firstNewlineIndex = stack.indexOf("\n");
+                  const secondNewlineIndex = firstNewlineIndex === -1 ? -1 : stack.indexOf("\n", firstNewlineIndex + 1);
+                  const stackWithoutTwoTopLines = secondNewlineIndex === -1 ? "" : stack.slice(secondNewlineIndex + 1);
+                  if (!String(err.stack).endsWith(stackWithoutTwoTopLines)) {
+                    err.stack += "\n" + stack;
+                  }
                 }
               } catch (e) {
               }
@@ -3144,20 +3182,27 @@
   });
 
   // public/js/login.js
-  var login, logout;
+  var getCsrf, login, logout;
   var init_login = __esm({
     "public/js/login.js"() {
       init_axios2();
       init_alert();
+      getCsrf = () => document.getElementById("_csrf").value;
       login = async (email, password) => {
+        const token = getCsrf();
         try {
           const res = await axios_default({
             method: "POST",
             url: "http://127.0.0.1:8000/api/v1/users/login",
+            // 'https://test.matthewcampbellstead.com/api/v1/users/login'
             data: {
               email,
               password
-            }
+            },
+            headers: {
+              "x-csrf-token": token
+            },
+            withCredentials: true
           });
           if (res.data.status === "success") {
             showAlert("success", "Logged in successfully");
@@ -3174,6 +3219,7 @@
           const res = await axios_default({
             method: "GET",
             url: "http://127.0.0.1:8000/api/v1/users/logout"
+            // 'https://test.matthewcampbellstead.com/api/v1/users/login'
           });
           if (res.data.status === "success") location.assign("/");
         } catch (err) {
@@ -3243,21 +3289,22 @@
   });
 
   // public/js/opsFunctions.js
-  var viewShipmentLogs, updateTimeline, getTable;
+  var getCsrf2, viewShipmentLogs, updateTimeline, getTable;
   var init_opsFunctions = __esm({
     "public/js/opsFunctions.js"() {
       init_axios2();
       init_alert();
+      getCsrf2 = () => getElementById("_csrf").value;
       viewShipmentLogs = async (id) => {
         const userid = id;
         try {
           const res = await axios_default({
             method: "GET",
             url: `http://127.0.0.1:8000/api/v1/users/${userid}/shipmentlogs`
+            // 'https://test.matthewcampbellstead.com/api/v1/users/${userid}/shipmentlogs
           });
           if (res.data.status === "success") {
             showAlert("success", "User shipments loaded");
-            console.log(res.data.data.data);
             let data = JSON.stringify(res.data.data.data, null, 4);
             document.querySelector(".shipment-logs").textContent = data;
           }
@@ -3266,14 +3313,19 @@
         }
       };
       updateTimeline = async (docId, data) => {
+        const token = getCsrf2();
         const id = docId;
         const newData = { ...data };
-        console.log(id, newData);
         try {
           const res = await axios_default({
             method: "PATCH",
             url: `http://127.0.0.1:8000/api/v1/data/timeline/${id}`,
-            data: newData
+            // `https://test.matthewcampbellstead.com/api/v1/data/timeline/${id}`
+            data: newData,
+            headers: {
+              "x-csrf-token": token
+            },
+            withCredentials: true
           });
           if (res.data.status === "success") {
             showAlert("success", "Timeline updated successfully!");
@@ -3294,9 +3346,9 @@
           const res = await axios_default({
             method: "GET",
             url: `http://127.0.0.1:8000/api/v1/data/${selection}/${id}`
+            // `https://test.matthewcampbellstead.com/api/v1/data/${selection}/${id}`
           });
           if (res.data.status === "success") {
-            console.log(res.data);
             const markupShipment = `<div class="shipment-box-detail"> <span class="shipment-box_label"> ${JSON.stringify(res.data.data.document, null, 4).replaceAll('"', "")}</span></div>`;
             Object.keys(res.data.data.document).forEach((key) => {
               document.querySelector(".field-select").insertAdjacentHTML("afterbegin", `<option>${key}</option>`);
@@ -3304,7 +3356,6 @@
             document.querySelector(".shipment-box").insertAdjacentHTML("afterbegin", markupShipment);
           }
         } catch (err) {
-          console.log(err);
           showAlert("error", err.response);
         }
       };
@@ -3312,20 +3363,26 @@
   });
 
   // public/js/submitData.js
-  var submit, update;
+  var getCsrf3, submit, update;
   var init_submitData = __esm({
     "public/js/submitData.js"() {
       "use strict";
       init_axios2();
       init_alert();
+      getCsrf3 = () => document.getElementById("_csrf").value;
       submit = async (dataObj, type) => {
+        const token = getCsrf3();
         const url = type === "master" ? "http://127.0.0.1:8000/api/v1/data" : `http://127.0.0.1:8000/api/v1/data/${type}`;
         const localObj = { ...dataObj };
         try {
           const res = await axios_default({
             method: "POST",
             url,
-            data: localObj
+            data: localObj,
+            headers: {
+              "x-csrf-token": token
+            },
+            withCredentials: true
           });
           if (res.data.status === "success") {
             showAlert("success", "Data submitted successfully");
@@ -3337,13 +3394,18 @@
         }
       };
       update = async (dataObj, table, id) => {
+        const token = getCsrf3();
         const localObj = { ...dataObj };
         const url = `http://127.0.0.1:8000/api/v1/data/${table}/${id}`;
         try {
           const res = await axios_default({
             method: "PATCH",
             url,
-            data: localObj
+            data: localObj,
+            headers: {
+              "x-csrf-token": token
+            },
+            withCredentials: true
           });
           if (res.data.status === "success") {
             showAlert("success", "Data submitted successfully");
@@ -3803,7 +3865,6 @@
             let key = iterator2(object, el);
             object[key] = node.value;
           });
-          console.log(object);
           submit(object, "financials");
         });
       if (submitCustomsForm)
@@ -4001,7 +4062,6 @@
         fieldAddBtn.addEventListener("click", (e) => {
           e.preventDefault();
           const selection = fieldSelector.value;
-          console.log(selection);
           const markup = `<div class="form__group">
   <label class="form__label" for="${selection}">
     ${selection.toUpperCase()}
@@ -4017,7 +4077,6 @@
           const object = {};
           metaArray.forEach((obj) => {
             if (tableSelection === obj.name) {
-              console.log(obj.name, obj.array);
               obj.array.forEach((el) => {
                 const node = document.getElementById(el);
                 if (!node) return;
@@ -4028,7 +4087,6 @@
           });
           const route = tableSelection.toLowerCase();
           const id2 = dbUpdateId.value;
-          console.log(object);
           update(object, route, id2);
         });
     }
