@@ -3193,8 +3193,7 @@
         try {
           const res = await axios_default({
             method: "POST",
-            url: "http://127.0.0.1:8000/api/v1/users/login",
-            // 'https://test.matthewcampbellstead.com/api/v1/users/login'
+            url: `${"http://127.0.0.1:8000"}/api/v1/users/login`,
             data: {
               email,
               password
@@ -3211,15 +3210,15 @@
             }, 1500);
           }
         } catch (err) {
-          showAlert("error", err.response.data.message);
+          console.log(err);
+          showAlert("error", err.response?.data?.message);
         }
       };
       logout = async () => {
         try {
           const res = await axios_default({
             method: "GET",
-            url: "http://127.0.0.1:8000/api/v1/users/logout"
-            // 'https://test.matthewcampbellstead.com/api/v1/users/login'
+            url: `${"http://127.0.0.1:8000"}/api/v1/users/logout`
           });
           if (res.data.status === "success") location.assign("/");
         } catch (err) {
@@ -3300,12 +3299,11 @@
         try {
           const res = await axios_default({
             method: "GET",
-            url: `http://127.0.0.1:8000/api/v1/users/${userid}/shipmentlogs`
-            // 'https://test.matthewcampbellstead.com/api/v1/users/${userid}/shipmentlogs
+            url: `${"http://127.0.0.1:8000"}/api/v1/users/${userid}/shipmentlogs`
           });
           if (res.data.status === "success") {
             showAlert("success", "User shipments loaded");
-            let data = JSON.stringify(res.data.data.data, null, 4);
+            const data = JSON.stringify(res.data.data.data, null, 4);
             document.querySelector(".shipment-logs").textContent = data;
           }
         } catch (err) {
@@ -3319,8 +3317,7 @@
         try {
           const res = await axios_default({
             method: "PATCH",
-            url: `http://127.0.0.1:8000/api/v1/data/timeline/${id}`,
-            // `https://test.matthewcampbellstead.com/api/v1/data/timeline/${id}`
+            url: `${"http://127.0.0.1:8000"}/api/v1/data/timeline/${id}`,
             data: newData,
             headers: {
               "x-csrf-token": token
@@ -3345,8 +3342,7 @@
         try {
           const res = await axios_default({
             method: "GET",
-            url: `http://127.0.0.1:8000/api/v1/data/${selection}/${id}`
-            // `https://test.matthewcampbellstead.com/api/v1/data/${selection}/${id}`
+            url: `${"http://127.0.0.1:8000"}/api/v1/data/${selection}/${id}`
           });
           if (res.data.status === "success") {
             const markupShipment = `<div class="shipment-box-detail"> <span class="shipment-box_label"> ${JSON.stringify(res.data.data.document, null, 4).replaceAll('"', "")}</span></div>`;
@@ -3372,7 +3368,7 @@
       getCsrf3 = () => document.getElementById("_csrf").value;
       submit = async (dataObj, type) => {
         const token = getCsrf3();
-        const url = type === "master" ? "http://127.0.0.1:8000/api/v1/data" : `http://127.0.0.1:8000/api/v1/data/${type}`;
+        const url = type === "master" ? `${"http://127.0.0.1:8000"}/api/v1/data` : `${"http://127.0.0.1:8000"}/api/v1/data/${type}`;
         const localObj = { ...dataObj };
         try {
           const res = await axios_default({
@@ -3396,7 +3392,7 @@
       update = async (dataObj, table, id) => {
         const token = getCsrf3();
         const localObj = { ...dataObj };
-        const url = `http://127.0.0.1:8000/api/v1/data/${table}/${id}`;
+        const url = `${"http://127.0.0.1:8000"}/api/v1/data/${table}/${id}`;
         try {
           const res = await axios_default({
             method: "PATCH",
@@ -3835,6 +3831,7 @@
           const userId = document.getElementById("users").value;
           object.shipment_file_id = fileId;
           object.users = userId;
+          object.CustomerId = document.getElementById("CustomerId").value;
           submit(object, "master");
         });
       if (submitShipperForm)
