@@ -3414,7 +3414,7 @@
   });
 
   // public/js/data.js
-  var detailsArray, conveyanceArray, customsArray, financialsArray, shipperArray, customerKeyArray, customerIdArray, consigneesKeyArray, consigneesIdArray, iterator2, addRemoveClasslist, initialize, timelineKeysArr, metaArray;
+  var detailsArray, conveyanceArray, customsArray, financialsArray, shipperArray, customerKeyArray, customerIdArray, consigneesKeyArray, consigneesIdArray, iterator2, toggleHidden, initialize, setObject, timelineKeysArr, metaArray;
   var init_data2 = __esm({
     "public/js/data.js"() {
       detailsArray = [
@@ -3551,7 +3551,7 @@
         }
         return void 0;
       };
-      addRemoveClasslist = (el) => {
+      toggleHidden = (el) => {
         const [a, b, c, d] = el;
         a.classList.add("hidden");
         b.classList.add("hidden");
@@ -3560,6 +3560,19 @@
       };
       initialize = (el) => {
         el.classList.add("hidden");
+      };
+      setObject = (arr) => {
+        const object = {};
+        for (const key of arr) {
+          object[key] = null;
+        }
+        arr.forEach((el) => {
+          const node = document.getElementById(el);
+          if (!node) return;
+          let key = iterator2(object, el);
+          object[key] = node.value;
+        });
+        return object;
       };
       timelineKeysArr = [
         "cargo_collected",
@@ -3772,13 +3785,15 @@
       var nextBtn5 = document.querySelector(".next5");
       var nextBtn6 = document.querySelector(".next6");
       var nextBtn7 = document.querySelector(".next7");
-      var nextBtn8 = document.querySelector(".next8");
+      var backBtn = document.querySelector(".back");
+      var showCustomerFormBtn = document.querySelector(".show-form");
       var dbUpdateSelect1 = document.querySelector(".db-select");
       var dbUpdateBtn1 = document.querySelector(".update-select");
       var dbUpdateId = document.querySelector(".document-id");
       var fieldAddBtn = document.querySelector(".update-add1");
       var fieldSelector = document.querySelector(".field-select");
       var updateForm = document.querySelector(".update-form");
+      var updateContainer = document.querySelector(".dashboard__container");
       var formElements = [];
       formElements.push(
         submitShipperForm,
@@ -3795,7 +3810,7 @@
         nextBtn5,
         nextBtn6,
         nextBtn7,
-        nextBtn8
+        backBtn
       );
       for (const el of formElements) if (el) initialize(el);
       if (loginForm)
@@ -3827,92 +3842,45 @@
         submitDataForm.addEventListener("submit", (e) => {
           e.preventDefault();
           const object = {};
-          const fileId = document.getElementById("shipment_file_id").value;
-          const userId = document.getElementById("users").value;
-          object.shipment_file_id = fileId;
-          object.users = userId;
+          object.shipment_file_id = document.getElementById("shipment_file_id").value;
+          object.users = document.getElementById("users").value;
           object.CustomerId = document.getElementById("CustomerId").value;
           submit(object, "master");
         });
       if (submitShipperForm)
         submitShipperForm.addEventListener("submit", (e) => {
           e.preventDefault();
-          const object = {};
-          for (const key of shipperArray) {
-            object[key] = null;
-          }
-          shipperArray.forEach((el) => {
-            const node = document.getElementById(el);
-            if (!node) return;
-            let key = iterator2(object, el);
-            object[key] = node.value;
-          });
-          submit(object, "shippers");
+          const shipperObj = setObject(shipperArray);
+          submit(shipperObj, "shippers");
         });
       if (submitFinancialsForm)
         submitFinancialsForm.addEventListener("submit", (e) => {
           e.preventDefault();
-          const object = {};
-          for (const key of financialsArray) {
-            object[key] = null;
-          }
-          financialsArray.forEach((el) => {
-            const node = document.getElementById(el);
-            if (!node) return;
-            let key = iterator2(object, el);
-            object[key] = node.value;
-          });
-          submit(object, "financials");
+          const financialsObj = setObject(financialsArray);
+          submit(financialsObj, "financials");
         });
       if (submitCustomsForm)
         submitCustomsForm.addEventListener("submit", (e) => {
           e.preventDefault();
-          const object = {};
-          for (const key of customsArray) {
-            object[key] = null;
-          }
-          customsArray.forEach((el) => {
-            const node = document.getElementById(el);
-            if (!node) return;
-            let key = iterator2(object, el);
-            object[key] = node.value;
-          });
-          submit(object, "customs");
+          const customsObj = setObject(customsArray);
+          submit(customsObj, "customs");
         });
       if (submitDetailsForm)
         submitDetailsForm.addEventListener("submit", (e) => {
           e.preventDefault();
-          let object = {};
-          for (const key of detailsArray) {
-            object[key] = null;
-          }
-          detailsArray.forEach((el) => {
-            const node = document.getElementById(el);
-            if (!node) return;
-            let key = iterator2(object, el);
-            object[key] = node.value;
-          });
-          submit(object, "shipment-details");
+          const detailsObj = setObject(detailsArray);
+          submit(detailsObj, "shipment-details");
         });
       if (submitConveyanceForm)
         submitConveyanceForm.addEventListener("submit", (e) => {
           e.preventDefault();
-          let object = {};
-          for (const key of conveyanceArray) {
-            object[key] = null;
-          }
-          conveyanceArray.forEach((el) => {
-            const node = document.getElementById(el);
-            if (!node) return;
-            let key = iterator2(object, el);
-            object[key] = node.value;
-          });
-          submit(object, "conveyance");
+          const conveyanceObj = setObject(conveyanceArray);
+          submit(conveyanceObj, "conveyance");
         });
       if (timelineForm)
         timelineForm.addEventListener("submit", (e) => {
           e.preventDefault();
-          let object = {};
+          const object = {};
           object.timelineMasterId = document.getElementById("timelineMasterId").value;
           submit(object, "timeline");
         });
@@ -3950,65 +3918,56 @@
         });
       if (nextBtn1)
         nextBtn1.addEventListener("click", () => {
-          addRemoveClasslist([nextBtn1, submitDataForm, submitShipperForm, nextBtn2]);
+          toggleHidden([nextBtn1, submitDataForm, submitShipperForm, nextBtn2]);
+          updateContainer.classList.add("hidden");
         });
       if (nextBtn2)
-        nextBtn2.addEventListener("click", () => {
-          addRemoveClasslist([
-            nextBtn2,
-            submitShipperForm,
-            submitDetailsForm,
-            nextBtn3
-          ]);
-        });
+        nextBtn2.addEventListener(
+          "click",
+          () => toggleHidden([nextBtn2, submitShipperForm, submitDetailsForm, nextBtn3])
+        );
       if (nextBtn3)
-        nextBtn3.addEventListener("click", () => {
-          addRemoveClasslist([
-            nextBtn3,
-            submitDetailsForm,
-            submitFinancialsForm,
-            nextBtn4
-          ]);
-        });
+        nextBtn3.addEventListener(
+          "click",
+          () => toggleHidden([nextBtn3, submitDetailsForm, submitFinancialsForm, nextBtn4])
+        );
       if (nextBtn4)
-        nextBtn4.addEventListener("click", () => {
-          addRemoveClasslist([
-            nextBtn4,
-            submitFinancialsForm,
-            submitCustomsForm,
-            nextBtn5
-          ]);
-        });
+        nextBtn4.addEventListener(
+          "click",
+          () => toggleHidden([nextBtn4, submitFinancialsForm, submitCustomsForm, nextBtn5])
+        );
       if (nextBtn5)
-        nextBtn5.addEventListener("click", () => {
-          addRemoveClasslist([
-            nextBtn5,
-            submitCustomsForm,
-            submitConveyanceForm,
-            nextBtn6
-          ]);
-        });
+        nextBtn5.addEventListener(
+          "click",
+          () => toggleHidden([nextBtn5, submitCustomsForm, submitConveyanceForm, nextBtn6])
+        );
       if (nextBtn6)
-        nextBtn6.addEventListener("click", () => {
-          addRemoveClasslist([
-            nextBtn6,
-            submitConveyanceForm,
-            timelineForm,
-            nextBtn7
-          ]);
-        });
+        nextBtn6.addEventListener(
+          "click",
+          () => toggleHidden([nextBtn6, submitConveyanceForm, timelineForm, nextBtn7])
+        );
       if (nextBtn7)
-        nextBtn7.addEventListener("click", () => {
-          timelineForm.classList.add("hidden");
-          nextBtn7.classList.add("hidden");
-          customersForm.classList.remove("hidden");
-          nextBtn8.classList.remove("hidden");
+        nextBtn7.addEventListener(
+          "click",
+          () => toggleHidden([nextBtn7, timelineForm, consigneesForm, backBtn])
+        );
+      if (backBtn)
+        backBtn.addEventListener("click", () => {
+          formElements.forEach((el) => initialize(el));
+          nextBtn1.classList.remove("hidden");
+          updateContainer.classList.remove("hidden");
+          submitDataForm.classList.remove("hidden");
         });
-      if (nextBtn8)
-        nextBtn8.addEventListener("click", () => {
-          customersForm.classList.add("hidden");
-          nextBtn8.classList.add("hidden");
-          consigneesForm.classList.remove("hidden");
+      var hidden = true;
+      if (showCustomerFormBtn)
+        showCustomerFormBtn.addEventListener("click", () => {
+          if (hidden) {
+            customersForm.classList.remove("hidden");
+            hidden = false;
+          } else if (!hidden) {
+            customersForm.classList.add("hidden");
+            hidden = true;
+          }
         });
       var milestoneBool = document.querySelectorAll("td");
       if (milestoneBool)
@@ -4049,13 +4008,13 @@
           object[arrCopy] = dateInput;
           updateTimeline(timelineId, object);
         });
-      if (dbUpdateSelect1)
+      if (dbUpdateBtn1)
         dbUpdateBtn1.addEventListener("click", () => {
           const selection = dbUpdateSelect1.value;
           const id2 = dbUpdateId.value;
           getTable(selection, id2);
         });
-      if (fieldSelector)
+      if (fieldAddBtn)
         fieldAddBtn.addEventListener("click", (e) => {
           e.preventDefault();
           const selection = fieldSelector.value;
