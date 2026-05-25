@@ -3288,12 +3288,12 @@
   });
 
   // public/js/opsFunctions.js
-  var getCsrf2, viewShipmentLogs, updateTimeline, getTable;
+  var getCsrf2, viewShipmentLogs, updateTimeline, getTable, getDogs;
   var init_opsFunctions = __esm({
     "public/js/opsFunctions.js"() {
       init_axios2();
       init_alert();
-      getCsrf2 = () => getElementById("_csrf").value;
+      getCsrf2 = () => document.getElementById("_csrf").value;
       viewShipmentLogs = async (id) => {
         const userid = id;
         try {
@@ -3352,7 +3352,25 @@
             document.querySelector(".shipment-box").insertAdjacentHTML("afterbegin", markupShipment);
           }
         } catch (err) {
-          showAlert("error", err.response);
+          showAlert("error", err.response.data.message);
+        }
+      };
+      getDogs = async () => {
+        try {
+          const res = await axios_default({
+            method: "GET",
+            url: "https://dog.ceo/api/breeds/image/random"
+          });
+          if (res.data.status === "success") {
+            console.log(res.data);
+            const breed = res.data.message.split("/")[4];
+            document.querySelector(".main").insertAdjacentHTML(
+              "afterbegin",
+              `<h1> Random dog!\u{1F436} ${breed}</h1> <img src="${res.data.message}">`
+            );
+          }
+        } catch (err) {
+          console.log(err);
         }
       };
     }
@@ -3414,101 +3432,9 @@
   });
 
   // public/js/data.js
-  var detailsArray, conveyanceArray, customsArray, financialsArray, shipperArray, customerKeyArray, customerIdArray, consigneesKeyArray, consigneesIdArray, iterator2, toggleHidden, initialize, setObject, timelineKeysArr, metaArray;
+  var customerIdArray, consigneesIdArray, iterator2, toggleHidden, initialize, setObject, metaArray;
   var init_data2 = __esm({
     "public/js/data.js"() {
-      detailsArray = [
-        "incoterms",
-        "mode",
-        "routing",
-        "goodsDescriptions",
-        "packagingType",
-        "containerSpecs",
-        "containerQty",
-        "numItems",
-        "grossWeightKg",
-        "netWeightKg",
-        "cbm",
-        "handlingRequirements",
-        "dangerousGoods",
-        "codeDrg",
-        "detailsMasterId"
-      ];
-      conveyanceArray = [
-        "loadPort",
-        "portTransShip",
-        "portDischarge",
-        "inlandDestination",
-        "finalDelivery",
-        "airlineName",
-        "billMasterAirway",
-        "billHouseAirway",
-        "flightNum1",
-        "flightDate1",
-        "flightNum2",
-        "flightDate2",
-        "etd",
-        "eta",
-        "shippingLineName",
-        "vesselName",
-        "voyageNum",
-        "oceanBoLnum",
-        "houseBoLnum",
-        "containerNum",
-        "sealNum",
-        "shippedOnboardDate",
-        "etaFinalPort",
-        "truckRegNo",
-        "truckType",
-        "conveyanceMasterId"
-      ];
-      customsArray = [
-        "agent",
-        "agentCode",
-        "bOeNum",
-        "bOeReleaseDate",
-        "bOeAssessDate",
-        "releaseDepot",
-        "lrnNum",
-        "mrnNum",
-        "customsMasterId"
-      ];
-      financialsArray = [
-        "shipperInvoiceNum",
-        "invoiceDate",
-        "invoiceAmount",
-        "currency",
-        "tradeRef",
-        "apnNum",
-        "bank",
-        "apnDate",
-        "financialsMasterId"
-      ];
-      shipperArray = [
-        "shippersMasterId",
-        "companyName",
-        "contactName",
-        "phoneLandline",
-        "phoneMobile",
-        "emailPrimary",
-        "emailSecondary",
-        "addressLine1",
-        "addressLine2",
-        "addressLine3",
-        "country"
-      ];
-      customerKeyArray = [
-        "userId",
-        "companyName",
-        "phoneLandline",
-        "phoneMobile",
-        "emailPri",
-        "emailSec",
-        "addressLine1",
-        "addressLine2",
-        "addressLine3",
-        "country"
-      ];
       customerIdArray = [
         "userId",
         "companyName_1",
@@ -3520,18 +3446,6 @@
         "addressLine2_1",
         "addressLine3_1",
         "country_1"
-      ];
-      consigneesKeyArray = [
-        "consigneesMasterId",
-        "companyName",
-        "phoneLandline",
-        "phoneMobile",
-        "emailPri",
-        "emailSec",
-        "addressLine1",
-        "addressLine2",
-        "addressLine3",
-        "country"
       ];
       consigneesIdArray = [
         "consigneesMasterId",
@@ -3574,28 +3488,6 @@
         });
         return object;
       };
-      timelineKeysArr = [
-        "cargo_collected",
-        "received",
-        "cargo_packed",
-        "depot_lrd",
-        "cargo_loaded",
-        "cargo_departed",
-        "obl_awb",
-        "anf_pre",
-        "customer",
-        "payment",
-        "line",
-        "clearing",
-        "delivery",
-        "signed",
-        "sars",
-        "cargo_arrived",
-        "cargo_released",
-        "cargo_unpacked",
-        "cargo_delivered",
-        "doc"
-      ];
       metaArray = [
         {
           name: "Shipment-details",
@@ -3763,6 +3655,7 @@
       if (currentTheme) {
         changeStyle();
       }
+      if (document.querySelector(".main--dogs")) getDogs();
       var logOutBtn = document.querySelector(".nav__el--logout");
       var loginForm = document.querySelector(".login-form");
       var submitDataForm = document.querySelector(".data-form__master");
@@ -3850,31 +3743,41 @@
       if (submitShipperForm)
         submitShipperForm.addEventListener("submit", (e) => {
           e.preventDefault();
-          const shipperObj = setObject(shipperArray);
+          const shipperObj = setObject(
+            metaArray.find((el) => el.name === "Shippers").array
+          );
           submit(shipperObj, "shippers");
         });
       if (submitFinancialsForm)
         submitFinancialsForm.addEventListener("submit", (e) => {
           e.preventDefault();
-          const financialsObj = setObject(financialsArray);
+          const financialsObj = setObject(
+            metaArray.find((el) => el.name === "Financials").array
+          );
           submit(financialsObj, "financials");
         });
       if (submitCustomsForm)
         submitCustomsForm.addEventListener("submit", (e) => {
           e.preventDefault();
-          const customsObj = setObject(customsArray);
+          const customsObj = setObject(
+            metaArray.find((el) => el.name === "Customs").array
+          );
           submit(customsObj, "customs");
         });
       if (submitDetailsForm)
         submitDetailsForm.addEventListener("submit", (e) => {
           e.preventDefault();
-          const detailsObj = setObject(detailsArray);
+          const detailsObj = setObject(
+            metaArray.find((el) => el.name === "Shipment-details").array
+          );
           submit(detailsObj, "shipment-details");
         });
       if (submitConveyanceForm)
         submitConveyanceForm.addEventListener("submit", (e) => {
           e.preventDefault();
-          const conveyanceObj = setObject(conveyanceArray);
+          const conveyanceObj = setObject(
+            metaArray.find((el) => el.name === "Conveyance").array
+          );
           submit(conveyanceObj, "conveyance");
         });
       if (timelineForm)
@@ -3888,7 +3791,7 @@
         customersForm.addEventListener("submit", (e) => {
           e.preventDefault();
           let object = {};
-          for (const key of customerKeyArray) {
+          for (const key of metaArray.find((el) => el.name === "Customers").array) {
             object[key] = null;
           }
           customerIdArray.forEach((el) => {
@@ -3904,7 +3807,7 @@
         consigneesForm.addEventListener("submit", (e) => {
           e.preventDefault();
           let object = {};
-          for (const key of consigneesKeyArray) {
+          for (const key of metaArray.find((el) => el.name === "Consignees").array) {
             object[key] = null;
           }
           consigneesIdArray.forEach((el) => {
@@ -3978,7 +3881,7 @@
         document.querySelector(".timeline-id__submit").addEventListener("click", () => {
           const timelineId = document.querySelector(".timeline-id").value;
           let object = {};
-          for (const x of timelineKeysArr) {
+          for (const x of metaArray.find((el) => el.name === "Timelines").array) {
             object[x] = null;
           }
           let input = document.querySelector(".timeline-select").value;
@@ -3991,7 +3894,7 @@
           let arrCopy = [...arr];
           arr = arr.join("_");
           let key;
-          timelineKeysArr.forEach((el) => {
+          metaArray.find((el) => el.name === "Timelines").array.forEach((el) => {
             if (arr.includes(el)) {
               key = el;
             }
