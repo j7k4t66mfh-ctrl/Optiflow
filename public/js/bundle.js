@@ -3193,7 +3193,7 @@
         try {
           const res = await axios_default({
             method: "POST",
-            url: `${"http://127.0.0.1:8000"}/api/v1/users/login`,
+            url: `${"http://127.0.0.1:8000"}/api/v1/users/auth/login`,
             data: {
               email,
               password
@@ -3218,7 +3218,7 @@
         try {
           const res = await axios_default({
             method: "GET",
-            url: `${"http://127.0.0.1:8000"}/api/v1/users/logout`
+            url: `${"http://127.0.0.1:8000"}/api/v1/users/auth/logout`
           });
           if (res.data.status === "success") location.assign("/");
         } catch (err) {
@@ -3651,6 +3651,7 @@
       init_opsFunctions();
       init_submitData();
       init_data2();
+      console.log("page origin:", window.location.origin);
       var currentTheme = localStorage.getItem("theme");
       if (currentTheme) {
         changeStyle();
